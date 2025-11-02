@@ -4,6 +4,7 @@ __lua__
 debug = true
 
 nmes = {} //enemies
+twrs = {} //towers
 frm = 0   //frames since start
 sec = 0   //seconds since start
 
@@ -66,21 +67,21 @@ function init_types()
   t2 = {}
   t2.name = "buggy"
   t2.hp = 3
-  t2.ftm = 25
+  t2.ftm = 35
   t2.i = 3
   etypes[t2.name] = t2
   
   t3 = {}
   t3.name = "droid"
   t3.hp = 5
-  t3.ftm = 75
+  t3.ftm = 70
   t3.i = 5
   etypes[t3.name] = t3
     
   t4 = {}
   t4.name = "mech"
   t4.hp = 6
-  t4.ftm = 50
+  t4.ftm = 45
   t4.i = 7
   etypes[t4.name] = t4
 end
@@ -109,7 +110,7 @@ function move_enemies()
     e = nmes[x]
     e.cftm = e.cftm - 1
     if e.cftm <= 0 then
-      e.y = e.y + 16
+      e.y = e.y + 4
       e.cftm = e.ftm
     end
   end
