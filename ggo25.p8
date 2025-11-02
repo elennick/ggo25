@@ -2,61 +2,25 @@ pico-8 cartridge // http://www.pico-8.com
 version 43
 __lua__
 debug = true
+
 nmes = {} //enemies
 frm = 0   //frames since start
 sec = 0   //seconds since start
 
+etypes = {} //enemy types
+lanes = {}  //game board lanes
+
 function _init() 
   cls()
+  init_types()
   
-  e1 = {}
-  e1.x = 16 - 4
-  e1.y = 16 - 4
-  e1.i = 1    //base frame
-  e1.ftm = 25 //frames til move
-  add(nmes, e1)
-  
-  e2 = {}
-  e2.x = 32 - 4
-  e2.y = 16 - 4
-  e2.i = 3
-  e2.ftm = 50
-  add(nmes, e2)
-  
-  e3 = {}
-  e3.x = 48 - 4
-  e3.y = 16 - 4
-  e3.i = 5
-  e3.ftm = 100
-  add(nmes, e3)
-  
-  e4 = {}
-  e4.x = 64 - 4
-  e4.y = 16 - 4
-  e4.i = 7
-  e4.ftm = 75
-  add(nmes, e4)
-  
-  e5 = {}
-  e5.x = 80 - 4
-  e5.y = 16 - 4
-  e5.i = 1
-  e5.ftm = 150
-  add(nmes, e5)
-    
-  e6 = {}
-  e6.x = 96 - 4
-  e6.y = 16 - 4
-  e6.i = 3
-  e6.ftm = 125
-  add(nmes, e6)
-  
-  e7 = {}
-  e7.x = 112 - 4
-  e7.y = 16 - 4
-  e7.i = 5
-  e7.ftm = 75
-  add(nmes, e7)
+  create_nme(12, 12)
+	 create_nme(28, 12)
+  create_nme(44, 12)
+  create_nme(60, 12)
+  create_nme(76, 12)
+  create_nme(92, 12)
+  create_nme(108, 12)
 end
 
 function _update()
@@ -91,13 +55,62 @@ function _draw()
   end
 end
 
+function init_types()
+  t1 = {}
+  t1.name = "tank"
+  t1.hp = 10
+  t1.ftm = 100
+  t1.i = 1
+  etypes[t1.name] = t1
+  
+  t2 = {}
+  t2.name = "buggy"
+  t2.hp = 3
+  t2.ftm = 25
+  t2.i = 3
+  etypes[t2.name] = t2
+  
+  t3 = {}
+  t3.name = "droid"
+  t3.hp = 5
+  t3.ftm = 75
+  t3.i = 5
+  etypes[t3.name] = t3
+    
+  t4 = {}
+  t4.name = "mech"
+  t4.hp = 6
+  t4.ftm = 50
+  t4.i = 7
+  etypes[t4.name] = t4
+end
+
+function get_random_etype()
+  local values = {}
+  for _, v in pairs(etypes) do
+    add(values, v)
+  end
+  return values[flr(rnd(#values)) + 1]
+end
+
+function create_nme(x,y)
+  t = get_random_etype()
+  e = {}
+  e.x = x        
+  e.y = y
+  e.i = t.i      //key sprite
+  e.ftm = t.ftm  //frames to move
+  e.cftm = t.ftm //current frames to move
+  add(nmes, e)
+end
+
 function move_enemies()
   for x=1,#nmes do
     e = nmes[x]
-    e.ftm = e.ftm - 1
-    if e.ftm <= 0 then
+    e.cftm = e.cftm - 1
+    if e.cftm <= 0 then
       e.y = e.y + 16
-      e.ftm = 100
+      e.cftm = e.ftm
     end
   end
 end
