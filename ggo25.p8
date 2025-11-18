@@ -5,36 +5,36 @@ debug = false
 
 nmes = {} //enemies
 twrs = {} //towers
+lvls = {} //levels
 hits = {} //hit animations
 game = {} //game info
 frm = 0   //frames since start
 sec = 0   //seconds since start
 
+cpos = 0  //cursor position (lane)
+
 etypes = {} //enemy types
 ttypes = {} //tower types
+
+// controls
+// left/right to move cursor
+// up/down to change tower 
+// o/x button to select tower
 
 function _init() 
   cls()
   init_nme_types()
   init_twr_types()
+  init_levels()
   
   game.fsls = 0 //frames since last enemy spawn
   game.sr = 100 //enemy spawn rate in frames
   game.sn = 5   //number of enemies per spawn
   game.score = 0
+  game.money = 0
+  game.curlvl = nil
 
-	 create_nme(2)
-  create_nme(3)
-  create_nme(5)
-  create_nme(7)
-  
-  create_twr(1, "laser")
-  create_twr(2, "scatter")
-  create_twr(3, "gatling")
-  create_twr(4, "laser")
-  create_twr(5, "gatling")
-  create_twr(6, "scatter")
-  create_twr(7, "laser")
+  load_level(1)
 end
 
 function _update()
@@ -56,6 +56,12 @@ function _update()
 	 		if h.lifetime <= 0 then
 	 		  del(hits, h)
 	 		end
+	 end
+	 
+	 if btnp(1) then
+	   cpos = min(cpos + 1, 7)
+	 elseif  btnp(0) then
+	   cpos = max(cpos - 1, 0)
 	 end
 end
 
@@ -102,11 +108,19 @@ function _draw()
 	   h.lifetime -= 1
 	 end
 
-  //draw score
+  //draw score/money
   print("score: ", 4, 4, 0)
-  print(game.score, 29, 4, 0)
+  print(game.score, 28, 4, 0)
   print("score: ", 5, 5, 7)
-  print(game.score, 30, 5, 7)
+  print(game.score, 29, 5, 7)
+  
+  print("money:$", 4, 14, 0)
+  print(game.money, 33, 14, 0)
+  print("money:$", 5, 15, 7)
+  print(game.money, 34, 15, 7)
+  
+  //draw cursor
+  rect(cpos * 16, 111, (cpos * 16) + 15, 127, 11)
   
   //draw debug text
   if debug then
@@ -118,10 +132,16 @@ function _draw()
   end
 end
 
+function load_level(l)
+  game.curlvl = lvls[l]
+end
+
 function get_random_etype()
   local values = {}
-  for _, v in pairs(etypes) do
-    add(values, v)
+  
+  for i, tname in ipairs(game.curlvl.nmes) do
+    local t = etypes[tname]
+    add(values, t)
   end
   return values[flr(rnd(#values)) + 1]
 end
@@ -308,6 +328,14 @@ function check_nme_death(e)
     game.score += e.type.value
     del(nmes, e)
   end
+end
+
+function init_levels()
+  local l1 = {}
+  l1.money = 100
+  l1.nmes = { "mech", "buggy" }
+  l1.twrs = { "gatling" }
+  add(lvls, l1)
 end
 __gfx__
 00000000000000000000000000000898000088980000004000000400000000000000000000000000000000000000000000000000000000000000000000000000
