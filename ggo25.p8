@@ -59,9 +59,13 @@ function _update()
 	 end
 	 
 	 if btnp(1) then
-	   cpos = min(cpos + 1, 7)
+	   cpos = min(cpos + 1, 6)
 	 elseif  btnp(0) then
 	   cpos = max(cpos - 1, 0)
+	 end
+	 
+	 if btnp(4) or btnp(5) then
+	   create_twr(cpos + 1, "gatling")
 	 end
 end
 
@@ -120,7 +124,7 @@ function _draw()
   print(game.money, 34, 15, 7)
   
   //draw cursor
-  rect(cpos * 16, 111, (cpos * 16) + 15, 127, 11)
+  rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
   
   //draw debug text
   if debug then
@@ -134,6 +138,7 @@ end
 
 function load_level(l)
   game.curlvl = lvls[l]
+  game.money = lvls[l].money
 end
 
 function get_random_etype()
@@ -164,6 +169,13 @@ function create_nme(lane)
 end
 
 function create_twr(lane, tt)
+  for i=1,#twrs do
+    local t = twrs[i]
+    if t.lane == lane then
+      return
+    end
+  end
+
   local t = {}  
   t.type = ttypes[tt]
   t.lane = lane
