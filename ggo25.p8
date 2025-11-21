@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 43
 __lua__
 debug = false
-start_lvl = 3
+start_lvl = 1
 
 nmes = {} //enemies
 twrs = {} //towers
@@ -135,7 +135,21 @@ function draw_game_screen()
   		else
   		  i = t.type.i + 1
   		end
-  		spr(i, (t.lane * 16) - 4, 120)
+  		spr(i, (t.lane * 16) - 4, 116)
+	 
+	   //draw firing timer
+	   local perc = t.tsf / t.type.rof
+	   local x1 = (t.lane * 16) - 4
+	   local x2 = x1 + (7 * perc)
+	   local clr
+	   if perc >= .5 then
+	     clr = 11
+	   elseif perc < .5 and perc > .2 then
+	     clr = 10
+	   else
+	     clr = 8
+	   end 
+	   line(x1, 126, x2, 126, clr)
 	 end
 	 
 	 //draw hits
