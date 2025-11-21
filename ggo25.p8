@@ -1,6 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 43
 __lua__
+//init stuff
+
 debug = false
 start_lvl = 1
 
@@ -34,6 +36,9 @@ function _init()
   load_level(start_lvl)
   show_screen("title")
 end
+
+-->8
+//update functions
 
 function _update()
 		frm += 1
@@ -91,6 +96,9 @@ function update_game_screen()
 	   end
 	 end
 end
+
+-->8
+//draw functions
 
 function _draw()
   cls(1)
@@ -160,26 +168,20 @@ function draw_game_screen()
 	 end
 
   //draw score/money
-  print("score: ", 4, 4, 0)
-  print(game.score, 28, 4, 0)
-  print("score: ", 5, 5, 7)
-  print(game.score, 29, 5, 7)
-  
-  print("money:$", 4, 14, 0)
-  print(game.money, 33, 14, 0)
-  print("money:$", 5, 15, 7)
-  print(game.money, 34, 15, 7)
-  
+  print_shadowed("score: ",4,4)
+  print_shadowed(game.score,28,4)
+  print_shadowed("money:$",4,14)
+  print_shadowed(game.money,34,14)
+
   //draw cursor
   rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
   
   //draw debug text
   if debug then
-  		print("sec: ", 10, 10, 7)
-  		print(sec, 28, 10, 7)
-  
-  		print("frm: ", 10, 20, 7)
-  		print(frm, 28, 20, 7)
+  		print_shadowed("sec: ", 90, 4)
+  		print_shadowed(sec, 107, 4)
+    print_shadowed("frm: ", 90, 14)
+    print_shadowed(frm, 107, 14)
   end
   
   //check win condition
@@ -201,117 +203,24 @@ function draw_title_screen()
   print("press any key to play!", 20, 85, 7)
 end
 
-function reset_level()
-  game.fsls = 0 //frames since last enemy spawn
-  game.sr = 125 //enemy spawn rate in frames
-  game.sn = 3   //number of enemies per spawn
-  game.score = 0
-  game.money = 0
-end
-
-function show_screen(s)
-  //screen types
-  //"title" - title screen
-  //"intro" - level intro
-  //"game" - gameplay
-  game.curscreen = s
-end
-
-function load_level(l)
-  nmes = {}
-  twrs = {}
-  hits = {}
-  reset_level()
-  game.curlvl = lvls[l]
-  //game.money = lvls[l].money
-end
-
-function get_random_etype()
-  local values = {}
-  
-  for i, tname in ipairs(game.curlvl.nmes) do
-    local t = etypes[tname]
-    add(values, t)
-  end
-  return values[flr(rnd(#values)) + 1]
-end
-
-function create_nme(lane)
-  if lane == nil then
-    lane = flr(rnd(7)) + 1
-  end
-
-  local t = get_random_etype()
-  local e = {}
-  e.lane = lane 
-  e.hp = t.hp      
-  e.y = -8
-  e.type = t
-  e.i = t.i      //key sprite
-  e.ftm = t.ftm  //frames to move
-  e.cftm = t.ftm //current frames to move
-  add(nmes, e)
-end
-
-function create_twr(lane, tt)
-  for i=1,#twrs do
-    local t = twrs[i]
-    if t.lane == lane then
-      return
-    end
-  end
-
-  local t = {}  
-  t.type = ttypes[tt]
-  t.lane = lane
-  t.y = 120
-  t.tsf = t.type.rof
-  t.firing = false
-  add(twrs, t)
-end
-
-function fire_towers()
-  for i=1,#twrs do
-    local t = twrs[i]
-    t.tsf -= 1
-    if t.tsf <= 0 and t.type.has_targets(t) then
-      t.firing = true
-      t.tsf = t.type.rof
-      t.type.deal_damage(t)
-    elseif t.tsf <= t.type.rof - 5 then
-      t.firing = false
-    end
-  end
-end
-
-function move_enemies()
-  for i=1,#nmes do
-    local e = nmes[i]
-    e.cftm = e.cftm - 1
-    if e.cftm <= 0 then
-      e.y = e.y + 4
-      e.cftm = e.ftm
-    end
-  end
-end
 -->8
-//init types below
+//init types and data
 
 function init_nme_types()
   local t1 = {}
   t1.name = "tank"
-  t1.hp = 250
-  t1.ftm = 80
+  t1.hp = 500
+  t1.ftm = 100
   t1.i = 1
-  t1.value = 25
+  t1.value = 100
   etypes[t1.name] = t1
   
   local t2 = {}
   t2.name = "buggy"
-  t2.hp = 25
-  t2.ftm = 10
+  t2.hp = 20
+  t2.ftm = 7
   t2.i = 3
-  t2.value = 15
+  t2.value = 5
   etypes[t2.name] = t2
   
   local t3 = {}
@@ -319,15 +228,15 @@ function init_nme_types()
   t3.hp = 100
   t3.ftm = 55
   t3.i = 5
-  t3.value = 20
+  t3.value = 50
   etypes[t3.name] = t3
     
   local t4 = {}
   t4.name = "mech"
-  t4.hp = 150
+  t4.hp = 100
   t4.ftm = 35
   t4.i = 7
-  t4.value = 10
+  t4.value = 50
   etypes[t4.name] = t4
 end
 
@@ -435,6 +344,8 @@ function init_levels()
   l1.twrs = { "gatling" }
   l1.name = "level 1"
   l1.desc = "the gatling gun is a good\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
+  l1.ssr = 240  //starting spawn rate in frames
+  l1.ssn = 3  //starting spawn num of nmes
   l1.fc = function(game)
     return game.score >= 250
   end
@@ -447,6 +358,8 @@ function init_levels()
   l2.twrs = { "scatter" }
   l2.name = "level 2"
   l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it fires\nfast!!! try it out!"
+  l2.ssr = 120
+  l2.ssn = 5
   l2.fc = function(game)
     return game.score >= 250
   end
@@ -459,10 +372,115 @@ function init_levels()
   l3.twrs = { "laser" }
   l3.name = "level 3"
   l3.desc = "the laser is expensive\nand fires slow but it does\nmega damage! try it out!"
+  l3.ssr = 240
+  l3.ssn = 2
   l3.fc = function(game)
     return game.score >= 250
   end
   add(lvls, l3)
+end
+-->8
+//misc functions
+
+function reset_level()
+  game.fsls = 0 //frames since last enemy spawn
+  game.sr = 999 //enemy spawn rate in frames
+  game.sn = 0   //number of enemies per spawn
+  game.score = 0
+  game.money = 0
+end
+
+function show_screen(s)
+  //screen types
+  //"title" - title screen
+  //"intro" - level intro
+  //"game" - gameplay
+  game.curscreen = s
+end
+
+function load_level(l)
+  nmes = {}
+  twrs = {}
+  hits = {}
+  reset_level()
+  game.curlvl = lvls[l]
+  game.sr = game.curlvl.ssr
+  game.sn = game.curlvl.ssn
+  game.money = game.curlvl.money
+end
+
+function get_random_etype()
+  local values = {}
+  
+  for i, tname in ipairs(game.curlvl.nmes) do
+    local t = etypes[tname]
+    add(values, t)
+  end
+  return values[flr(rnd(#values)) + 1]
+end
+
+function create_nme(lane)
+  if lane == nil then
+    lane = flr(rnd(7)) + 1
+  end
+
+  local t = get_random_etype()
+  local e = {}
+  e.lane = lane 
+  e.hp = t.hp      
+  e.y = -8
+  e.type = t
+  e.i = t.i      //key sprite
+  e.ftm = t.ftm  //frames to move
+  e.cftm = t.ftm //current frames to move
+  add(nmes, e)
+end
+
+function create_twr(lane, tt)
+  for i=1,#twrs do
+    local t = twrs[i]
+    if t.lane == lane then
+      return
+    end
+  end
+
+  local t = {}  
+  t.type = ttypes[tt]
+  t.lane = lane
+  t.y = 120
+  t.tsf = t.type.rof
+  t.firing = false
+  add(twrs, t)
+end
+
+function fire_towers()
+  for i=1,#twrs do
+    local t = twrs[i]
+    t.tsf -= 1
+    if t.tsf <= 0 and t.type.has_targets(t) then
+      t.firing = true
+      t.tsf = t.type.rof
+      t.type.deal_damage(t)
+    elseif t.tsf <= t.type.rof - 5 then
+      t.firing = false
+    end
+  end
+end
+
+function move_enemies()
+  for i=1,#nmes do
+    local e = nmes[i]
+    e.cftm = e.cftm - 1
+    if e.cftm <= 0 then
+      e.y = e.y + 4
+      e.cftm = e.ftm
+    end
+  end
+end
+
+function print_shadowed(t,x,y)
+  print(t,x,y,0)
+  print(t,x+1,y+1,7)
 end
 __gfx__
 00000000000000000000000000000898000088980000004000000400000000000000000000000000000000000000000000000000000000000000000000000000
@@ -473,8 +491,8 @@ __gfx__
 00700700055555500555555000676880006768004944459449444594000ee000000ee00d00000000008800000000080008000880000880008000000080008800
 0000000056767675576767650076700000000000409999044099990400e00e00000e0e0000000000000888888000080008000880000080008000000080000800
 000000000555555005555550000000000076700040000040040000040e00e00000e00e0000000000000000008000080008000880000880008888800080008800
-00000000000c8000000000006009a005000000008989a89800000000000000000000000000000000000000000800080008000880000800008000000088880000
-00000000000c800000000000059a9a00000660000a8669a000000000000000000006600000000000000880000800080008800888888800008000000088880000
+00000000000c8000000000006009a005000000000989a89000000000000000000000000000000000000000000800080008000880000800008000000088880000
+00000000000c800000000000059a9a00000660000a8a99a000000000000000000006600000000000000880000800080008800888888800008000000088880000
 00000000000c80000067670000767606000660000096680000000000006565000006600000000000000088000800080008800880000000008800000008088000
 00055000000550000067670050767650000550000005500000055000006565000005500000000000000008888800088088000880000000008888000008008000
 00222200002222000067670000767600005555000055550000555500006565000055550000000000000000000000008880000880000c00000000888008000800
