@@ -4,7 +4,7 @@ __lua__
 //init stuff
 
 debug = false
-start_lvl = 1
+start_lvl = 4
 
 nmes = {} //enemies
 twrs = {} //towers
@@ -15,6 +15,7 @@ frm = 0   //frames since start
 sec = 0   //seconds since start
 
 cpos = 0  //cursor position (lane)
+csel = 1  //cursor selection
 
 etypes = {} //enemy types
 ttypes = {} //tower types
@@ -77,12 +78,21 @@ function update_game_screen()
   move_enemies()
   fire_towers()
   
+  //clean up any hit animations that are done
   for i,h in ipairs(hits) do
 	 		if h.lifetime <= 0 then
 	 		  del(hits, h)
 	 		end
 	 end
 	 
+	 //clean up towers that are out of ammo
+  for i,t in ipairs(twrs) do
+	 		if t.ammo <= 0 then
+	 		  del(twrs, t)
+	 		end
+	 end	 
+	 
+	 //handle input
 	 if btnp(1) then
 	   cpos = min(cpos + 1, 6)
 	 elseif  btnp(0) then
@@ -107,8 +117,10 @@ function _draw()
     draw_title_screen()
   elseif game.curscreen == "intro" then
     draw_intro_screen()
-  else
+  elseif game.curscreen == "game" then
     draw_game_screen()  
+  else
+    draw_win_screen()
   end
 end
 
@@ -144,15 +156,17 @@ function draw_game_screen()
   		  i = t.type.i + 1
   		end
   		spr(i, (t.lane * 16) - 4, 116)
+	   t.type.drawmore(t)
 	 
-	   //draw firing timer
-	   local perc = t.tsf / t.type.rof
+	   //draw ammo timer
 	   local x1 = (t.lane * 16) - 4
-	   local x2 = x1 + (7 * perc)
-	   local clr
-	   if perc >= .5 then
+	   local am = t.ammo / t.type.ammo
+	   local x2 = x1 + (7 * am)
+	   
+    local clr
+	   if am >= .5 then
 	     clr = 11
-	   elseif perc < .5 and perc > .2 then
+	   elseif am < .5 and am > .2 then
 	     clr = 10
 	   else
 	     clr = 8
@@ -203,6 +217,10 @@ function draw_title_screen()
   print("press any key to play!", 20, 85, 7)
 end
 
+function draw_win_screen()
+  print("you won!", 10, 45, 7)
+end
+
 -->8
 //init types and data
 
@@ -217,7 +235,7 @@ function init_nme_types()
   
   local t2 = {}
   t2.name = "buggy"
-  t2.hp = 20
+  t2.hp = 15
   t2.ftm = 7
   t2.i = 3
   t2.value = 5
@@ -250,6 +268,7 @@ function init_twr_types()
   t1.i = 18
   t1.dmg = 2
   t1.rof = 30 //frames, lower is better
+  t1.ammo = 25
   t1.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
       if abs(twr.lane - e.lane) <= t1.range then
@@ -266,7 +285,15 @@ function init_twr_types()
     end
   end
   t1.has_targets = function(twr)
-    return true
+    for i, e in ipairs(nmes) do
+      if abs(twr.lane - e.lane) <= t1.range then
+        return true
+      end
+    end
+    return false  
+  end
+  t1.drawmore = function(twr)
+  
   end
   ttypes[t1.name] = t1
   
@@ -278,7 +305,8 @@ function init_twr_types()
   t2.range = 0
   t2.i = 16
   t2.dmg = 100
-  t2.rof = 300
+  t2.rof = 50
+  t2.ammo = 10
   t2.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
       if abs(twr.lane - e.lane) <= t2.range then
@@ -295,21 +323,34 @@ function init_twr_types()
     end  
   end
   t2.has_targets = function(twr)
-    return true
+    for i, e in ipairs(nmes) do
+      if e.lane == twr.lane then
+        return true
+      end
+    end
+    return false
+  end
+  t2.drawmore = function(twr)
+    if twr.firing then
+      local x = (twr.lane * 16) - 1
+      line(x, 0, x, 115, 12)
+      line(x+1, 0, x+1, 115, 8)
+    end
   end
   ttypes[t2.name] = t2
   
-  //aoe, low damage
-  //can hit every enemy in every row
+  //low damage, short range, wide spread
+  //can hit many enemies in close range
   local t3 = {}
   t3.name = "scatter"
   t3.range = 2
   t3.i = 20
   t3.dmg = 1
   t3.rof = 20
+  t3.ammo = 100
   t3.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
-      local inrange = abs(twr.lane - e.lane) and e.y > 50
+      local inrange = abs(twr.lane - e.lane) <= twr.type.range and e.y > 50
       if inrange then
         h = {}
         h.lane = e.lane
@@ -324,7 +365,16 @@ function init_twr_types()
     end 
   end
   t3.has_targets = function(twr)
-    return true
+    for i, e in ipairs(nmes) do
+      local inrange = abs(twr.lane - e.lane) <= twr.type.range and e.y > 50
+      if inrange then
+        return true
+      end
+    end
+    return false  
+  end
+  t3.drawmore = function(twr)
+  
   end
   ttypes[t3.name] = t3
 end 
@@ -345,9 +395,9 @@ function init_levels()
   l1.name = "level 1"
   l1.desc = "the gatling gun is a good\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
   l1.ssr = 240  //starting spawn rate in frames
-  l1.ssn = 3  //starting spawn num of nmes
+  l1.ssn = 4    //starting spawn num of nmes
   l1.fc = function(game)
-    return game.score >= 250
+    return game.score >= 200
   end
   add(lvls, l1)
   
@@ -361,7 +411,7 @@ function init_levels()
   l2.ssr = 120
   l2.ssn = 5
   l2.fc = function(game)
-    return game.score >= 250
+    return game.score >= 200
   end
   add(lvls, l2)
   
@@ -373,11 +423,25 @@ function init_levels()
   l3.name = "level 3"
   l3.desc = "the laser is expensive\nand fires slow but it does\nmega damage! try it out!"
   l3.ssr = 240
-  l3.ssn = 2
+  l3.ssn = 3
   l3.fc = function(game)
-    return game.score >= 250
+    return game.score >= 200
   end
   add(lvls, l3)
+  
+  local l4 = {}
+  l4.num = 4
+  l4.money = 250
+  l4.nmes = { "droid", "buggy", "mech" }
+  l4.twrs = { "gatling", "scatter" }
+  l4.name = "level 4"
+  l4.desc = "level 4 do stuff"
+  l4.ssr = 180
+  l4.ssn = 5
+  l4.fc = function(game)
+    return game.score >= 200
+  end
+  add(lvls, l4)
 end
 -->8
 //misc functions
@@ -395,10 +459,17 @@ function show_screen(s)
   //"title" - title screen
   //"intro" - level intro
   //"game" - gameplay
+  //"win" - player won
+  //"lose" - game over
   game.curscreen = s
 end
 
 function load_level(l)
+  if lvls[l] == nil then
+    show_screen("win")
+    return
+  end
+
   nmes = {}
   twrs = {}
   hits = {}
@@ -428,8 +499,9 @@ function create_nme(lane)
   local e = {}
   e.lane = lane 
   e.hp = t.hp      
-  e.y = -8
+  e.y = -4
   e.type = t
+  e.ammo = t.ammo
   e.i = t.i      //key sprite
   e.ftm = t.ftm  //frames to move
   e.cftm = t.ftm //current frames to move
@@ -448,7 +520,8 @@ function create_twr(lane, tt)
   t.type = ttypes[tt]
   t.lane = lane
   t.y = 120
-  t.tsf = t.type.rof
+  t.tsf = 0
+  t.ammo = t.type.ammo
   t.firing = false
   add(twrs, t)
 end
@@ -456,11 +529,15 @@ end
 function fire_towers()
   for i=1,#twrs do
     local t = twrs[i]
-    t.tsf -= 1
+    t.tsf = max(t.tsf - 1, 0)
     if t.tsf <= 0 and t.type.has_targets(t) then
       t.firing = true
       t.tsf = t.type.rof
       t.type.deal_damage(t)
+      t.ammo -= 1
+      //if t.ammo <= 0 then
+        //del(twrs, t)
+      //end
     elseif t.tsf <= t.type.rof - 5 then
       t.firing = false
     end
