@@ -3,8 +3,8 @@ version 43
 __lua__
 //init stuff
 
-debug = false
-start_lvl = 4
+debug = true
+start_lvl = 1
 
 nmes = {} //enemies
 twrs = {} //towers
@@ -33,6 +33,12 @@ function _init()
   
   game.curlvl = nil
   game.curscreen = nil
+  game.fsls = 0  //frames since last enemy spawn
+  game.sr = 999  //enemy spawn rate in frames
+  game.sn = 0    //number of enemies per spawn
+  game.money = 0
+  game.frm = 0   //frames since lvl start
+  game.sec = 0   //seconds since lvl start
 
   load_level(start_lvl)
   show_screen("title")
@@ -43,26 +49,35 @@ end
 
 function _update()
 		frm += 1
-  sec = flr(time())
+		game.frm += 1
+		
+  sec = time()
+  game.sec = game.frm / 30
   
   if game.curscreen == "title" then
     update_title_screen()
   elseif game.curscreen == "intro" then
     update_intro_screen()
-  else
+  elseif game.curscreen == "game" then
     update_game_screen()  
+  else
+    //win screen
   end
 end
 
 function update_title_screen()
-  if btnp() > 0 then
+  if btnp() > 0 and sec > .4 then
     game.curscreen = "intro"
+    game.frm = 0
+    game.sec = 0
   end
 end
 
 function update_intro_screen()
-  if btnp() > 0 then
+  if btnp() > 0 and game.sec > .4 then
     game.curscreen = "game"
+    game.frm = 0
+    game.sec = 0
   end
 end
 
@@ -182,20 +197,22 @@ function draw_game_screen()
 	 end
 
   //draw score/money
-  print_shadowed("score: ",4,4)
-  print_shadowed(game.score,28,4)
-  print_shadowed("money:$",4,14)
-  print_shadowed(game.money,34,14)
+  print_shadowed("money:$",4,4)
+  print_shadowed(game.money,34,4)
 
   //draw cursor
   rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
   
   //draw debug text
   if debug then
-  		print_shadowed("sec: ", 90, 4)
+  		print_shadowed("tsec: ", 85, 4)
   		print_shadowed(sec, 107, 4)
-    print_shadowed("frm: ", 90, 14)
+    print_shadowed("tfrm: ", 85, 14)
     print_shadowed(frm, 107, 14)
+    print_shadowed("lsec: ", 85, 24)
+  		print_shadowed(game.sec, 107, 24)
+    print_shadowed("lfrm: ", 85, 34)
+    print_shadowed(game.frm, 107, 34)
   end
   
   //check win condition
@@ -230,7 +247,7 @@ function init_nme_types()
   t1.hp = 500
   t1.ftm = 100
   t1.i = 1
-  t1.value = 100
+  t1.value = 50
   etypes[t1.name] = t1
   
   local t2 = {}
@@ -243,18 +260,18 @@ function init_nme_types()
   
   local t3 = {}
   t3.name = "droid"
-  t3.hp = 100
+  t3.hp = 75
   t3.ftm = 55
   t3.i = 5
-  t3.value = 50
+  t3.value = 25
   etypes[t3.name] = t3
     
   local t4 = {}
   t4.name = "mech"
-  t4.hp = 100
+  t4.hp = 125
   t4.ftm = 35
   t4.i = 7
-  t4.value = 50
+  t4.value = 75
   etypes[t4.name] = t4
 end
 
@@ -305,7 +322,7 @@ function init_twr_types()
   t2.range = 0
   t2.i = 16
   t2.dmg = 100
-  t2.rof = 50
+  t2.rof = 250
   t2.ammo = 10
   t2.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
@@ -381,7 +398,7 @@ end
 
 function check_nme_death(e)
   if e.hp <= 0 then
-    game.score += e.type.value
+    game.money += e.type.value
     del(nmes, e)
   end
 end
@@ -397,7 +414,7 @@ function init_levels()
   l1.ssr = 240  //starting spawn rate in frames
   l1.ssn = 4    //starting spawn num of nmes
   l1.fc = function(game)
-    return game.score >= 200
+    return game.money >= 500
   end
   add(lvls, l1)
   
@@ -411,7 +428,7 @@ function init_levels()
   l2.ssr = 120
   l2.ssn = 5
   l2.fc = function(game)
-    return game.score >= 200
+    return game.money >= 200
   end
   add(lvls, l2)
   
@@ -425,7 +442,7 @@ function init_levels()
   l3.ssr = 240
   l3.ssn = 3
   l3.fc = function(game)
-    return game.score >= 200
+    return game.money >= 300
   end
   add(lvls, l3)
   
@@ -439,7 +456,7 @@ function init_levels()
   l4.ssr = 180
   l4.ssn = 5
   l4.fc = function(game)
-    return game.score >= 200
+    return game.money >= 500
   end
   add(lvls, l4)
 end
@@ -450,8 +467,9 @@ function reset_level()
   game.fsls = 0 //frames since last enemy spawn
   game.sr = 999 //enemy spawn rate in frames
   game.sn = 0   //number of enemies per spawn
-  game.score = 0
   game.money = 0
+  game.frm = 0  //frames since lvl start
+  game.sec = 0  //seconds since lvl start
 end
 
 function show_screen(s)
@@ -465,11 +483,6 @@ function show_screen(s)
 end
 
 function load_level(l)
-  if lvls[l] == nil then
-    show_screen("win")
-    return
-  end
-
   nmes = {}
   twrs = {}
   hits = {}
@@ -535,9 +548,6 @@ function fire_towers()
       t.tsf = t.type.rof
       t.type.deal_damage(t)
       t.ammo -= 1
-      //if t.ammo <= 0 then
-        //del(twrs, t)
-      //end
     elseif t.tsf <= t.type.rof - 5 then
       t.firing = false
     end
