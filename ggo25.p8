@@ -51,8 +51,8 @@ function _update()
 		frm += 1
 		game.frm += 1
 		
-  sec = time()
-  game.sec = game.frm / 30
+  sec = flr(time())
+  game.sec = flr(game.frm / 30)
   
   if game.curscreen == "title" then
     update_title_screen()
@@ -66,7 +66,7 @@ function _update()
 end
 
 function update_title_screen()
-  if btnp() > 0 and sec > .4 then
+  if btnp() > 0 and sec > 1 then
     game.curscreen = "intro"
     game.frm = 0
     game.sec = 0
@@ -74,7 +74,7 @@ function update_title_screen()
 end
 
 function update_intro_screen()
-  if btnp() > 0 and game.sec > .4 then
+  if btnp() > 0 and game.sec > 1 then
     game.curscreen = "game"
     game.frm = 0
     game.sec = 0
@@ -287,18 +287,16 @@ function init_twr_types()
   t1.rof = 30 //frames, lower is better
   t1.ammo = 25
   t1.deal_damage = function(twr)
+				local cn = {}
     for i, e in ipairs(nmes) do
       if abs(twr.lane - e.lane) <= t1.range then
-        h = {}
-        h.lane = e.lane
-        h.y = e.y
-        h.i = 34
-        h.lifetime = 4
-        add(hits, h)
-     
-        e.hp -= t1.dmg   
-        check_nme_death(e)
+        if cn[e.lane] == nil or cn[e.lane].y < e.y then
+          cn[e.lane] = e
+        end           
       end
+    end
+    for i, e in pairs(cn) do
+      create_hit(e,34,4,t1.dmg)
     end
   end
   t1.has_targets = function(twr)
@@ -327,15 +325,7 @@ function init_twr_types()
   t2.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
       if abs(twr.lane - e.lane) <= t2.range then
-        h = {}
-        h.lane = e.lane
-        h.y = e.y
-        h.i = 32
-        h.lifetime = 15
-        add(hits, h)
-        
-        e.hp -= t2.dmg
-        check_nme_death(e)
+        create_hit(e,32,15,t2.dmg)
       end
     end  
   end
@@ -369,15 +359,7 @@ function init_twr_types()
     for i, e in ipairs(nmes) do
       local inrange = abs(twr.lane - e.lane) <= twr.type.range and e.y > 50
       if inrange then
-        h = {}
-        h.lane = e.lane
-        h.y = e.y
-        h.i = 36
-        h.lifetime = 6
-        add(hits, h)
-        
-        e.hp -= t3.dmg
-        check_nme_death(e)
+        create_hit(e,36,7,t3.dmg)
       end
     end 
   end
@@ -411,8 +393,8 @@ function init_levels()
   l1.twrs = { "gatling" }
   l1.name = "level 1"
   l1.desc = "the gatling gun is a good\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
-  l1.ssr = 240  //starting spawn rate in frames
-  l1.ssn = 4    //starting spawn num of nmes
+  l1.ssr = 120  //starting spawn rate in frames
+  l1.ssn = 6    //starting spawn num of nmes
   l1.fc = function(game)
     return game.money >= 500
   end
@@ -568,6 +550,18 @@ end
 function print_shadowed(t,x,y)
   print(t,x,y,0)
   print(t,x+1,y+1,7)
+end
+
+function create_hit(e,i,l,d)
+  local h = {}
+  h.lane = e.lane
+  h.y = e.y
+  h.i = i
+  h.lifetime = l
+  add(hits, h)
+     
+  e.hp -= d   
+  check_nme_death(e)
 end
 __gfx__
 00000000000000000000000000000898000088980000004000000400000000000000000000000000000000000000000000000000000000000000000000000000
