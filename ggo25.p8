@@ -3,7 +3,7 @@ version 43
 __lua__
 //init stuff
 
-debug = true
+debug = false
 start_lvl = 1
 
 nmes = {} //enemies
@@ -14,8 +14,8 @@ game = {} //game info
 frm = 0   //frames since start
 sec = 0   //seconds since start
 
-cpos = 0  //cursor position (lane)
-csel = 1  //cursor selection
+cpos = 0    //cursor position (lane)
+csel = nil  //cursor selection
 
 etypes = {} //enemy types
 ttypes = {} //tower types
@@ -52,7 +52,7 @@ function _update()
 		game.frm += 1
 		
   sec = flr(time())
-  game.sec = flr(game.frm / 30)
+  game.sec = game.frm / 30
   
   if game.curscreen == "title" then
     update_title_screen()
@@ -66,7 +66,7 @@ function _update()
 end
 
 function update_title_screen()
-  if btnp() > 0 and sec > 1 then
+  if btnp() > 0 and sec > .4 then
     game.curscreen = "intro"
     game.frm = 0
     game.sec = 0
@@ -74,7 +74,7 @@ function update_title_screen()
 end
 
 function update_intro_screen()
-  if btnp() > 0 and game.sec > 1 then
+  if btnp() > 0 and game.sec > .4 then
     game.curscreen = "game"
     game.frm = 0
     game.sec = 0
@@ -108,17 +108,23 @@ function update_game_screen()
 	 end	 
 	 
 	 //handle input
-	 if btnp(1) then
+	 if btnp(➡️) then
 	   cpos = min(cpos + 1, 6)
-	 elseif  btnp(0) then
+	 elseif  btnp(⬅️) then
 	   cpos = max(cpos - 1, 0)
 	 end
 	 
 	 if btnp(4) or btnp(5) then
-	   local twr = game.curlvl.twrs[1]
-	   if twr != nil then
-	     create_twr(cpos + 1, twr)
+	   local twr_name = game.curlvl.twrs[csel]
+	   if twr_name != nil then
+	     create_twr(cpos + 1, twr_name)  
 	   end
+	 end
+	 
+	 if btnp(⬆️) then
+	   csel = min(csel+1,#game.curlvl.twrs)
+	 elseif btnp(⬇️) then
+	   csel = max(csel-1,1)
 	 end
 end
 
@@ -161,6 +167,19 @@ function draw_game_screen()
     end
   end
   
+  //draw cursor
+  rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
+  local csel_name = game.curlvl.twrs[csel]
+		local tsi
+		if csel_name == "laser" then
+		  tsi = 22
+		elseif csel_name == "gatling" then
+		  tsi = 23
+		else
+		  tsi = 24
+		end
+		spr(tsi, (cpos * 16) + 12, 116)
+  
   //draw towers
   for i=1,#twrs do
   		local t = twrs[i]
@@ -196,12 +215,11 @@ function draw_game_screen()
 	   h.lifetime -= 1
 	 end
 
-  //draw score/money
+  //draw level status text
   print_shadowed("money:$",4,4)
   print_shadowed(game.money,34,4)
-
-  //draw cursor
-  rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
+  print_shadowed("kills: ",4,14)
+  print_shadowed(game.kills,28,14)
   
   //draw debug text
   if debug then
@@ -283,9 +301,10 @@ function init_twr_types()
   t1.name = "gatling"
   t1.range = 1
   t1.i = 18
-  t1.dmg = 2
+  t1.dmg = 10
   t1.rof = 30 //frames, lower is better
-  t1.ammo = 25
+  t1.ammo = 50
+  t1.cost = 75
   t1.deal_damage = function(twr)
 				local cn = {}
     for i, e in ipairs(nmes) do
@@ -322,6 +341,7 @@ function init_twr_types()
   t2.dmg = 100
   t2.rof = 250
   t2.ammo = 10
+  t2.cost = 100
   t2.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
       if abs(twr.lane - e.lane) <= t2.range then
@@ -355,6 +375,7 @@ function init_twr_types()
   t3.dmg = 1
   t3.rof = 20
   t3.ammo = 100
+  t3.cost = 50
   t3.deal_damage = function(twr)
     for i, e in ipairs(nmes) do
       local inrange = abs(twr.lane - e.lane) <= twr.type.range and e.y > 50
@@ -373,7 +394,11 @@ function init_twr_types()
     return false  
   end
   t3.drawmore = function(twr)
-  
+    //if twr.firing then
+      //twr_x = twr.lane * 16
+      //line(twr_x - 5, twr.y - 5, twr_x - 20, twr.y - 20, 9)
+      //line(twr_x + 5, twr.y - 5, twr_x + 20, twr.y - 20, 9)
+    //end
   end
   ttypes[t3.name] = t3
 end 
@@ -382,13 +407,14 @@ function check_nme_death(e)
   if e.hp <= 0 then
     game.money += e.type.value
     del(nmes, e)
+    game.kills += 1
   end
 end
 
 function init_levels()
   local l1 = {}
   l1.num = 1
-  l1.money = 100
+  l1.money = 525
   l1.nmes = { "mech", "droid" }
   l1.twrs = { "gatling" }
   l1.name = "level 1"
@@ -396,13 +422,13 @@ function init_levels()
   l1.ssr = 120  //starting spawn rate in frames
   l1.ssn = 6    //starting spawn num of nmes
   l1.fc = function(game)
-    return game.money >= 500
+    return game.kills > 20
   end
   add(lvls, l1)
   
   local l2 = {}
   l2.num = 2
-  l2.money = 150
+  l2.money = 350
   l2.nmes = { "buggy" }
   l2.twrs = { "scatter" }
   l2.name = "level 2"
@@ -410,13 +436,13 @@ function init_levels()
   l2.ssr = 120
   l2.ssn = 5
   l2.fc = function(game)
-    return game.money >= 200
+    return game.kills > 20
   end
   add(lvls, l2)
   
   local l3 = {}
   l3.num = 3
-  l3.money = 250
+  l3.money = 700
   l3.nmes = { "tank" }
   l3.twrs = { "laser" }
   l3.name = "level 3"
@@ -424,7 +450,7 @@ function init_levels()
   l3.ssr = 240
   l3.ssn = 3
   l3.fc = function(game)
-    return game.money >= 300
+    return game.kills > 5
   end
   add(lvls, l3)
   
@@ -438,9 +464,23 @@ function init_levels()
   l4.ssr = 180
   l4.ssn = 5
   l4.fc = function(game)
-    return game.money >= 500
+    return game.kills > 20
   end
   add(lvls, l4)
+  
+  local l5 = {}
+  l5.num = 5
+  l5.money = 250
+  l5.nmes = { "droid", "buggy", "mech", "tank" }
+  l5.twrs = { "gatling", "scatter", "laser" }
+  l5.name = "level 5"
+  l5.desc = "level 5 do stuff"
+  l5.ssr = 240
+  l5.ssn = 5
+  l5.fc = function(game)
+    return game.kills > 200
+  end
+  add(lvls, l5)
 end
 -->8
 //misc functions
@@ -452,6 +492,7 @@ function reset_level()
   game.money = 0
   game.frm = 0  //frames since lvl start
   game.sec = 0  //seconds since lvl start
+  game.kills = 0
 end
 
 function show_screen(s)
@@ -470,6 +511,7 @@ function load_level(l)
   hits = {}
   reset_level()
   game.curlvl = lvls[l]
+  csel = 1
   game.sr = game.curlvl.ssr
   game.sn = game.curlvl.ssn
   game.money = game.curlvl.money
@@ -511,6 +553,10 @@ function create_twr(lane, tt)
     end
   end
 
+  if game.money < ttypes[tt].cost then
+    return
+  end
+  
   local t = {}  
   t.type = ttypes[tt]
   t.lane = lane
@@ -519,6 +565,8 @@ function create_twr(lane, tt)
   t.ammo = t.type.ammo
   t.firing = false
   add(twrs, t)
+  
+  game.money -= t.type.cost
 end
 
 function fire_towers()
