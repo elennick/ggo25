@@ -3,8 +3,15 @@ version 43
 __lua__
 //init stuff
 
+//todo
+//* lose condition
+//* retry on lose
+//* show tower cost
+//* dont let enemies spawn on each other
+//* destroy towers?
+
 debug = false
-start_lvl = 5
+start_lvl = 1
 tdelay = .3
 
 nmes = {} //enemies
@@ -172,14 +179,20 @@ function draw_game_screen()
   rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
   local csel_name = game.curlvl.twrs[csel]
 		local tsi
+		local tcost
 		if csel_name == "laser" then
 		  tsi = 22
+		  tcost = ttypes["laser"].cost
 		elseif csel_name == "gatling" then
 		  tsi = 23
+		  tcost = ttypes["gatling"].cost
 		else
 		  tsi = 24
+		  tcost = ttypes["scatter"].cost
 		end
 		spr(tsi, (cpos * 16) + 12, 116)
+  print("$", (cpos * 16) + 10, 105, 7)
+  print(tcost, (cpos * 16) + 14, 105, 7)
   
   //draw towers
   for i=1,#twrs do
@@ -520,6 +533,7 @@ function load_level(l)
   reset_level()
   game.curlvl = lvls[l]
   csel = 1
+  cpos = 0
   game.sr = game.curlvl.ssr
   game.sn = game.curlvl.ssn
   game.money = game.curlvl.money
@@ -659,7 +673,7 @@ c000800800000000000080a00000000008a99a800000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000bbbbb0000000000000000b0000000000000b00bb000bbb
 __sfx__
 0101000019050190501b0501e0501b050190503000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00100000190501b0501e0502005020050220500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0010000022000000000d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __music__
 00 01424344
 
