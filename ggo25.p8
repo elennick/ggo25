@@ -4,7 +4,8 @@ __lua__
 //init stuff
 
 debug = false
-start_lvl = 1
+start_lvl = 5
+tdelay = .3
 
 nmes = {} //enemies
 twrs = {} //towers
@@ -66,7 +67,7 @@ function _update()
 end
 
 function update_title_screen()
-  if btnp() > 0 and sec > .4 then
+  if btnp() > 0 and game.sec > tdelay then
     game.curscreen = "intro"
     game.frm = 0
     game.sec = 0
@@ -74,7 +75,7 @@ function update_title_screen()
 end
 
 function update_intro_screen()
-  if btnp() > 0 and game.sec > .4 then
+  if btnp() > 0 and game.sec > tdelay then
     game.curscreen = "game"
     game.frm = 0
     game.sec = 0
@@ -244,6 +245,8 @@ end
 function draw_intro_screen()
   print(game.curlvl.name, 50, 25, 3)
   print(game.curlvl.desc, 10, 45, 7)
+  print("goal: ", 25, 90, 7)
+  print(game.curlvl.goal, 50, 90, 13)
   print("press any key to continue!", 12, 105, 7)
 end
 
@@ -421,8 +424,9 @@ function init_levels()
   l1.desc = "the gatling gun is a good\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
   l1.ssr = 120  //starting spawn rate in frames
   l1.ssn = 6    //starting spawn num of nmes
+  l1.goal = "get 20 kills"
   l1.fc = function(game)
-    return game.kills > 20
+    return game.kills >= 20
   end
   add(lvls, l1)
   
@@ -435,8 +439,9 @@ function init_levels()
   l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it fires\nfast!!! try it out!"
   l2.ssr = 120
   l2.ssn = 5
+  l2.goal = "get 20 kills"
   l2.fc = function(game)
-    return game.kills > 20
+    return game.kills >= 20
   end
   add(lvls, l2)
   
@@ -449,20 +454,22 @@ function init_levels()
   l3.desc = "the laser is expensive\nand fires slow but it does\nmega damage! try it out!"
   l3.ssr = 240
   l3.ssn = 3
+  l3.goal = "get 5 kills"
   l3.fc = function(game)
-    return game.kills > 5
+    return game.kills >= 5
   end
   add(lvls, l3)
   
   local l4 = {}
   l4.num = 4
-  l4.money = 250
+  l4.money = 1000
   l4.nmes = { "droid", "buggy", "mech" }
   l4.twrs = { "gatling", "scatter" }
   l4.name = "level 4"
-  l4.desc = "level 4 do stuff"
+  l4.desc = "you can choose what tower\nto place using the ⬆️\nand ⬇️ keys. try it out!"
   l4.ssr = 180
   l4.ssn = 5
+  l4.goal = "get 20 kills"
   l4.fc = function(game)
     return game.kills > 20
   end
@@ -474,11 +481,12 @@ function init_levels()
   l5.nmes = { "droid", "buggy", "mech", "tank" }
   l5.twrs = { "gatling", "scatter", "laser" }
   l5.name = "level 5"
-  l5.desc = "level 5 do stuff"
+  l5.desc = "you have to spend money\nto make money! every\ntower costs to build and\nhas limited ammo but\nevery kill earns you $$$!"
   l5.ssr = 240
   l5.ssn = 5
+  l5.goal = "have $1000"
   l5.fc = function(game)
-    return game.kills > 200
+    return game.money >= 1000
   end
   add(lvls, l5)
 end
