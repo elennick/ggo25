@@ -11,7 +11,7 @@ __lua__
 //* destroy towers?
 
 debug = false
-start_lvl = 1
+start_lvl = 2
 tdelay = .3
 
 nmes = {} //enemies
@@ -68,6 +68,8 @@ function _update()
     update_intro_screen()
   elseif game.curscreen == "game" then
     update_game_screen()  
+  elseif game.curscreen == "lose" then
+    update_lose_screen()
   else
     //win screen
   end
@@ -89,17 +91,31 @@ function update_intro_screen()
   end
 end
 
+function update_lose_screen()
+  if btnp() > 0 and game.sec > tdelay then
+    load_level()
+    game.curscreen = "game"
+    game.frm = 0
+    game.sec = 0
+  end
+end
+
 function update_game_screen()
   game.fsls += 1
   if game.fsls > game.sr then
-  		for i=1,game.sn do
-    		create_nme()
-    end
+    spawn_enemies()
     game.fsls = 0
   end
-  
+
+  fire_towers()  
   move_enemies()
-  fire_towers()
+  
+  //check if any enemies are at the bottom
+  for i,e in ipairs(nmes) do
+    if e.y > 120 then
+      show_screen("lose")
+    end
+  end  
   
   //clean up any hit animations that are done
   for i,h in ipairs(hits) do
@@ -148,6 +164,8 @@ function _draw()
     draw_intro_screen()
   elseif game.curscreen == "game" then
     draw_game_screen()  
+  elseif game.curscreen == "lose" then
+    draw_lose_screen()
   else
     draw_win_screen()
   end
@@ -174,25 +192,6 @@ function draw_game_screen()
       print(e.hp, ex, e.y + 8, 7)
     end
   end
-  
-  //draw cursor
-  rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
-  local csel_name = game.curlvl.twrs[csel]
-		local tsi
-		local tcost
-		if csel_name == "laser" then
-		  tsi = 22
-		  tcost = ttypes["laser"].cost
-		elseif csel_name == "gatling" then
-		  tsi = 23
-		  tcost = ttypes["gatling"].cost
-		else
-		  tsi = 24
-		  tcost = ttypes["scatter"].cost
-		end
-		spr(tsi, (cpos * 16) + 12, 116)
-  print("$", (cpos * 16) + 10, 105, 7)
-  print(tcost, (cpos * 16) + 14, 105, 7)
   
   //draw towers
   for i=1,#twrs do
@@ -222,6 +221,25 @@ function draw_game_screen()
 	   line(x1, 126, x2, 126, clr)
 	 end
 	 
+  //draw cursor
+  rect((cpos * 16) + 8, 111, (cpos * 16) + 23, 127, 11)
+  local csel_name = game.curlvl.twrs[csel]
+		local tsi
+		local tcost
+		if csel_name == "laser" then
+		  tsi = 22
+		  tcost = ttypes["laser"].cost
+		elseif csel_name == "gatling" then
+		  tsi = 23
+		  tcost = ttypes["gatling"].cost
+		else
+		  tsi = 24
+		  tcost = ttypes["scatter"].cost
+		end
+		spr(tsi, (cpos * 16) + 12, 116)
+  print("$", (cpos * 16) + 8, 105, 7)
+  print(tcost, (cpos * 16) + 13, 105, 7)
+  
 	 //draw hits
 	 for i=1,#hits do
 	   local h = hits[i]
@@ -268,6 +286,11 @@ function draw_title_screen()
   print("press any key to play!", 20, 85, 7)
 end
 
+function draw_lose_screen()
+  print("you lost!", 35, 45, 7)
+  print("press any key to retry!", 10, 70, 7)
+end
+
 function draw_win_screen()
   print("you won!", 10, 45, 7)
 end
@@ -281,15 +304,15 @@ function init_nme_types()
   t1.hp = 500
   t1.ftm = 100
   t1.i = 1
-  t1.value = 50
+  t1.value = 100
   etypes[t1.name] = t1
   
   local t2 = {}
   t2.name = "buggy"
-  t2.hp = 15
-  t2.ftm = 7
+  t2.hp = 4
+  t2.ftm = 5
   t2.i = 3
-  t2.value = 5
+  t2.value = 25
   etypes[t2.name] = t2
   
   local t3 = {}
@@ -297,7 +320,7 @@ function init_nme_types()
   t3.hp = 75
   t3.ftm = 55
   t3.i = 5
-  t3.value = 25
+  t3.value = 50
   etypes[t3.name] = t3
     
   local t4 = {}
@@ -320,7 +343,7 @@ function init_twr_types()
   t1.dmg = 10
   t1.rof = 30 //frames, lower is better
   t1.ammo = 50
-  t1.cost = 75
+  t1.cost = 200
   t1.deal_damage = function(twr)
 				local cn = {}
     for i, e in ipairs(nmes) do
@@ -430,11 +453,11 @@ end
 function init_levels()
   local l1 = {}
   l1.num = 1
-  l1.money = 525
+  l1.money = 1400
   l1.nmes = { "mech", "droid" }
   l1.twrs = { "gatling" }
-  l1.name = "level 1"
-  l1.desc = "the gatling gun is a good\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
+  l1.name = "lesson 1"
+  l1.desc = "the gatling gun is a great\nall around weapon! it\nwill hit neighboring lanes\nbut only hits the enemy\nin the front.. try it out!"
   l1.ssr = 120  //starting spawn rate in frames
   l1.ssn = 6    //starting spawn num of nmes
   l1.goal = "get 20 kills"
@@ -448,8 +471,8 @@ function init_levels()
   l2.money = 350
   l2.nmes = { "buggy" }
   l2.twrs = { "scatter" }
-  l2.name = "level 2"
-  l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it fires\nfast!!! try it out!"
+  l2.name = "lesson 2"
+  l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it's very!\ncheap!!! try it out!"
   l2.ssr = 120
   l2.ssn = 5
   l2.goal = "get 20 kills"
@@ -463,8 +486,8 @@ function init_levels()
   l3.money = 700
   l3.nmes = { "tank" }
   l3.twrs = { "laser" }
-  l3.name = "level 3"
-  l3.desc = "the laser is expensive\nand fires slow but it does\nmega damage! try it out!"
+  l3.name = "lesson 3"
+  l3.desc = "the laser fires very\nslow but it does\nmega damage! try it out!"
   l3.ssr = 240
   l3.ssn = 3
   l3.goal = "get 5 kills"
@@ -478,7 +501,7 @@ function init_levels()
   l4.money = 1000
   l4.nmes = { "droid", "buggy", "mech" }
   l4.twrs = { "gatling", "scatter" }
-  l4.name = "level 4"
+  l4.name = "lesson 4"
   l4.desc = "you can choose what tower\nto place using the ⬆️\nand ⬇️ keys. try it out!"
   l4.ssr = 180
   l4.ssn = 5
@@ -491,9 +514,9 @@ function init_levels()
   local l5 = {}
   l5.num = 5
   l5.money = 250
-  l5.nmes = { "droid", "buggy", "mech", "tank" }
+  l5.nmes = { "droid", "buggy", "mech" }
   l5.twrs = { "gatling", "scatter", "laser" }
-  l5.name = "level 5"
+  l5.name = "lesson 5"
   l5.desc = "you have to spend money\nto make money! every\ntower costs to build and\nhas limited ammo but\nevery kill earns you $$$!"
   l5.ssr = 240
   l5.ssn = 5
@@ -502,6 +525,30 @@ function init_levels()
     return game.money >= 1000
   end
   add(lvls, l5)
+  
+  local l6 = {}
+  l6.num = 6
+  l6.money = 250
+  l6.nmes = { "droid", "buggy", "mech", "laser" }
+  l6.twrs = { "gatling", "scatter", "laser" }
+  l6.name = "challenge 1"
+  l6.desc = "your first real challenge!\nyou have access to all\ntowers and all enemies\nwill be gunning for you!"
+  l6.ssr = 240
+  l6.ssn = 5
+  l6.goal = "survive 2 minutes!"
+  l6.fc = function(game)
+    return game.sec >= 120
+  end
+  l6.slogic = function(game)
+    create_nme(1,"buggy")
+    create_nme(2,"droid")
+    create_nme(3,"mech")
+    create_nme(4,"tank")
+    create_nme(5,"mech")
+    create_nme(6,"droid")
+    create_nme(7,"buggy")
+  end
+  add(lvls, l6)
 end
 -->8
 //misc functions
@@ -531,7 +578,11 @@ function load_level(l)
   twrs = {}
   hits = {}
   reset_level()
-  game.curlvl = lvls[l]
+  
+  if l != nil then
+    game.curlvl = lvls[l]
+  end  
+    
   csel = 1
   cpos = 0
   game.sr = game.curlvl.ssr
@@ -549,12 +600,18 @@ function get_random_etype()
   return values[flr(rnd(#values)) + 1]
 end
 
-function create_nme(lane)
+function create_nme(lane, nme_type)
   if lane == nil then
     lane = flr(rnd(7)) + 1
   end
 
-  local t = get_random_etype()
+  local t
+  if nme_type == nil then
+    t = get_random_etype()
+  else
+    t = etypes[nme_type]
+  end
+  
   local e = {}
   e.lane = lane 
   e.hp = t.hp      
@@ -568,17 +625,20 @@ function create_nme(lane)
 end
 
 function create_twr(lane, tt)
-  for i=1,#twrs do
-    local t = twrs[i]
-    if t.lane == lane then
-      return
-    end
-  end
-
   if game.money < ttypes[tt].cost then
     return
   end
   
+  //delete any tower already in this spot
+  for i=1,#twrs do
+    local t = twrs[i]
+    if t.lane == lane then
+      del(twrs, t)
+      break
+    end
+  end
+  
+  //create new tower
   local t = {}  
   t.type = ttypes[tt]
   t.lane = lane
@@ -632,6 +692,16 @@ function create_hit(e,i,l,d)
      
   e.hp -= d   
   check_nme_death(e)
+end
+
+function spawn_enemies()
+  if game.curlvl.slogic == nil then
+  		for i=1,game.sn do
+  		  create_nme()
+    end
+  else
+    game.curlvl.slogic(game)
+  end
 end
 __gfx__
 00000000000000000000000000000898000088980000004000000400000000000000000000000000000000000000000000000000000000000000000000000000
