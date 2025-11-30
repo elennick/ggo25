@@ -3,12 +3,9 @@ version 43
 __lua__
 //init stuff
 
-//todo
-//* dont let enemies spawn on each other
-
 debug = false
-start_lvl = 1
-tdelay = .3
+start_lvl = 6
+tdelay = .4
 
 nmes = {} //enemies
 twrs = {} //towers
@@ -43,6 +40,7 @@ function _init()
   game.money = 0
   game.frm = 0   //frames since lvl start
   game.sec = 0   //seconds since lvl start
+  poke(0x5f5c, 255)  //set button repeat delay
 
   load_level(start_lvl)
   show_screen("title")
@@ -246,8 +244,12 @@ function draw_game_screen()
   //draw level status text
   print_shadowed("money:$",4,4)
   print_shadowed(game.money,34,4)
-  print_shadowed("kills: ",4,14)
-  print_shadowed(game.kills,28,14)
+  if game.curlvl.gtext == nil then
+    print_shadowed("kills: ",4,14)
+    print_shadowed(game.kills,28,14)
+  else
+    print_shadowed(game.curlvl.gtext(game),4,14)
+  end
   
   //draw debug text
   if debug then
@@ -283,8 +285,8 @@ function draw_title_screen()
 end
 
 function draw_lose_screen()
-  print("you lost!", 35, 45, 7)
-  print("press any key to retry!", 10, 70, 7)
+  print("you lost!", 50, 45, 7)
+  print("press any key to retry!", 20, 70, 7)
 end
 
 function draw_win_screen()
@@ -457,6 +459,9 @@ function init_levels()
   l1.ssr = 120  //starting spawn rate in frames
   l1.ssn = 6    //starting spawn num of nmes
   l1.goal = "get 20 kills"
+  l1.gtext = function(game)
+    return "kills:" .. game.kills .. "/20"
+  end
   l1.fc = function(game)
     return game.kills >= 20
   end
@@ -472,6 +477,9 @@ function init_levels()
   l2.ssr = 120
   l2.ssn = 5
   l2.goal = "get 20 kills"
+  l2.gtext = function(game)
+    return "kills:" .. game.kills .. "/20"
+  end
   l2.fc = function(game)
     return game.kills >= 20
   end
@@ -487,6 +495,9 @@ function init_levels()
   l3.ssr = 240
   l3.ssn = 3
   l3.goal = "get 5 kills"
+  l3.gtext = function(game)
+    return "kills:" .. game.kills .. "/5"
+  end
   l3.fc = function(game)
     return game.kills >= 5
   end
@@ -502,6 +513,9 @@ function init_levels()
   l4.ssr = 180
   l4.ssn = 5
   l4.goal = "get 20 kills"
+  l4.gtext = function(game)
+    return "kills:" .. game.kills .. "/20"
+  end
   l4.fc = function(game)
     return game.kills > 20
   end
@@ -517,6 +531,9 @@ function init_levels()
   l5.ssr = 240
   l5.ssn = 5
   l5.goal = "have $1000"
+  l5.gtext = function(game)
+    return "money:" .. game.kills .. "/20"
+  end
   l5.fc = function(game)
     return game.money >= 1000
   end
@@ -524,7 +541,7 @@ function init_levels()
   
   local l6 = {}
   l6.num = 6
-  l6.money = 250
+  l6.money = 400
   l6.nmes = { "droid", "buggy" }
   l6.twrs = { "gatling", "scatter", "laser" }
   l6.name = "challenge 1"
@@ -532,6 +549,9 @@ function init_levels()
   l6.ssr = 180
   l6.ssn = 4
   l6.goal = "survive 2 minutes"
+  l6.gtext = function(game)
+    return "time:" .. flr(game.sec) .. "/120"
+  end
   l6.fc = function(game)
     return game.sec >= 120
   end
@@ -547,6 +567,9 @@ function init_levels()
   l7.ssr = 240
   l7.ssn = 3
   l7.goal = "survive 2 minutes!"
+  l7.gtext = function(game)
+    return "time:" .. flr(game.sec) .. "/120"
+  end
   l7.fc = function(game)
     return game.sec >= 120
   end
@@ -570,6 +593,9 @@ function init_levels()
   l8.ssr = 50
   l8.ssn = 5
   l8.goal = "get 150 kills"
+  l8.gtext = function(game)
+    return "kills:" .. game.kills .. "/150"
+  end
   l8.fc = function(game)
     return game.kills >= 150
   end
@@ -583,7 +609,7 @@ function init_levels()
     create_nme(7,"buggy")
   end
   add(lvls, l8)
-  
+ 
 end
 -->8
 //misc functions
