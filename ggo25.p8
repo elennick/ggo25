@@ -4,7 +4,7 @@ __lua__
 //init stuff
 
 debug = false
-start_lvl = 6
+start_lvl = 1
 tdelay = .4
 
 nmes = {} //enemies
@@ -107,6 +107,11 @@ function update_game_screen()
   //check if any enemies are at the bottom
   for i,e in ipairs(nmes) do
     if e.y > 120 then
+      if game.curlvl.num == 10 then
+        game.lkt = game.sec
+      else
+        game.lkt = nil
+      end
       show_screen("lose")
     end
   end  
@@ -280,13 +285,30 @@ function draw_intro_screen()
 end
 
 function draw_title_screen()
+  //enemies
+  spr(1, 20, 20)
+  spr(3, 45, 20)
+  spr(5, 75, 20)
+  spr(7, 100, 20)
+  
+  //title
   spr(10, 40, 40, 6, 5)
+  
+  //towers
+  spr(17, 30, 105)
+  spr(19, 60, 105)
+  spr(21, 90, 105)
+  
+  //text
   print("press any key to play!", 20, 85, 7)
 end
 
 function draw_lose_screen()
-  print("you lost!", 50, 45, 7)
-  print("press any key to retry!", 20, 70, 7)
+  print("you lost!", 50, 45, 3)
+  if game.lkt != nil then
+    print("you made it " .. flr(game.lkt) .. " seconds!", 22, 58, 7)
+  end
+  print("press any key to retry!", 20, 75, 7)
 end
 
 function draw_win_screen()
@@ -338,6 +360,7 @@ function init_twr_types()
   t1.name = "gatling"
   t1.range = 1
   t1.i = 18
+  t1.s = 1
   t1.dmg = 10
   t1.rof = 30 //frames, lower is better
   t1.ammo = 50
@@ -375,8 +398,9 @@ function init_twr_types()
   t2.name = "laser"
   t2.range = 0
   t2.i = 16
-  t2.dmg = 100
-  t2.rof = 250
+  t2.s = 0
+  t2.dmg = 250
+  t2.rof = 300
   t2.ammo = 10
   t2.cost = 100
   t2.deal_damage = function(twr)
@@ -409,6 +433,7 @@ function init_twr_types()
   t3.name = "scatter"
   t3.range = 2
   t3.i = 20
+  t3.s = 2
   t3.dmg = 1
   t3.rof = 20
   t3.ammo = 100
@@ -473,7 +498,7 @@ function init_levels()
   l2.nmes = { "buggy" }
   l2.twrs = { "scatter" }
   l2.name = "lesson 2"
-  l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it's very!\ncheap!!! try it out!"
+  l2.desc = "the scatter shot does\nweak damage and only hits\nclose enemies but it's\ncheap!!! try it out!"
   l2.ssr = 120
   l2.ssn = 5
   l2.goal = "get 20 kills"
@@ -532,7 +557,7 @@ function init_levels()
   l5.ssn = 5
   l5.goal = "have $1000"
   l5.gtext = function(game)
-    return "money:" .. game.kills .. "/20"
+    return "money:$" .. game.money .. "/1000"
   end
   l5.fc = function(game)
     return game.money >= 1000
@@ -609,7 +634,43 @@ function init_levels()
     create_nme(7,"buggy")
   end
   add(lvls, l8)
- 
+
+  local l9 = {}
+  l9.num = 9
+  l9.money = 400
+  l9.nmes = { "mech", "droid" }
+  l9.twrs = { "gatling", "scatter", "laser" }
+  l9.name = "challenge 4"
+  l9.desc = "can you handle waves\nof all mechanized enemies?"
+  l9.ssr = 180
+  l9.ssn = 4
+  l9.goal = "get 75 kills"
+  l9.gtext = function(game)
+    return "kills:" .. game.kills .. "/75"
+  end
+  l9.fc = function(game)
+    return game.kills >= 75
+  end
+  add(lvls, l9)
+
+  local l10 = {}
+  l10.num = 10
+  l10.money = 800
+  l10.nmes = { "mech", "droid", "tank", "buggy" }
+  l10.twrs = { "gatling", "scatter", "laser" }
+  l10.name = "endless!"
+  l10.desc = "this is the final challenge!\nthere is no time limit, you\nmust simply last as long as\npossible!"
+  l10.ssr = 50
+  l10.ssn = 5
+  l10.goal = "stay alive!"
+  l10.gtext = function(game)
+    return flr(game.sec) .. " sec"
+  end
+  l10.fc = function(game)
+    return false
+  end
+  add(lvls, l10)
+
 end
 -->8
 //misc functions
@@ -721,6 +782,7 @@ function fire_towers()
       t.tsf = t.type.rof
       t.type.deal_damage(t)
       t.ammo -= 1
+      sfx(t.type.s, 1)
     elseif t.tsf <= t.type.rof - 5 then
       t.firing = false
     end
@@ -803,8 +865,11 @@ c000800800000000000080a000000000508050050000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000b000bb000000bbbbbbb00b00000bbb00b00b0000bb0b00
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000bbbbb0000000000000000b0000000000000b00bb000bbb
 __sfx__
-0101000019050190501b0501e0501b050190503000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0010000022000000000d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+3f01000019050190501b0501c0501b040190501507000060000700006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010600000c6540c6540c6540c65400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01030000181521f1521d1520000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+001000002c0502b0502a0502a050290502905029050290502905029050290502905027050290502905025050260502805029050280502d050280503005028050310502805037050280503b050280502805028050
+001000002005023050240501f050250502d05020050240502c05021050320502a050320502805029050300502305029050230501c05030050310501a0502d0501f05031050200502d05017050300502205000000
 __music__
 00 01424344
 
