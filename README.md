@@ -1,3 +1,5 @@
 # Super Tower Defense
 
-[[ggo25_3.gif]]
+![GIF 1](https://github.com/elennick/bksowa/blob/master/pics/ggo25_3.gif)
+
+This was my submission for the Github Game Off gamejam in 2025: https://itch.io/jam/game-off-2025/rate/4084147
